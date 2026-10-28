@@ -1,21 +1,13 @@
 {
-    "balance": 2413,
+    "balance": 70,
     "transactions": [
         {
             "type": "Пополнение",
-            "amount": 2500
+            "amount": 100
         },
         {
             "type": "Снятие",
-            "amount": 200
-        },
-        {
-            "type": "Снятие",
-            "amount": 22
-        },
-        {
-            "type": "Пополнение",
-            "amount": 135
+            "amount": 30
         }
     ]
 }

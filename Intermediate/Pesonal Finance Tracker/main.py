@@ -11,6 +11,14 @@ except FileNotFoundError:
     transactions = []
 
 
+def save_data(balance , transactions):
+    data ={
+    "balance" : balance,
+    "transactions": transactions
+    }
+    with open("finance_data.json","w" ,encoding="utf-8") as file:
+        json.dump(data,file,ensure_ascii=False, indent=4)
+
 def show_balance(value):
     print(f"Текущий баланс: {value}")
 
@@ -27,34 +35,33 @@ def deposit_money(value,transactions):
         deposit = int(input("Введите сумму пополнения : "))
     except ValueError:
         print("Ошибка: нужно ввести число!")
-        return value
+        return value ,False
 
     if(deposit > 0):
         value += deposit
         transactions.append({"type":"Пополнение", "amount":deposit})
-
-        return value
+        return value , True
     else:
         print("Ошибка, некорректная сумма! ")
-        return value
+        return value ,False
 
 def withdraw_money(value,transactions):
     try:
         withdraw = int(input("Введите сумму которую хотите снять : "))
     except ValueError:
         print("Ошибка: нужно ввести число!")
-        return value
+        return value ,False
 
     if(withdraw <= 0 ):
         print("Ошибка, некорректная сумма! ")
-        return value
+        return value,False
     elif(withdraw > value):
         print("Недостаточно средств! ")
-        return value
+        return value,False
     else:
         value -= withdraw
         transactions.append({"type":"Снятие", "amount":withdraw})
-        return value
+        return value, True
 
 while(process):
     print("\nФинансовый трекер")
@@ -72,10 +79,14 @@ while(process):
         show_balance(balance)
 
     elif(menu_choice == 2):
-        balance = deposit_money(balance,transactions)
+        balance , success = deposit_money(balance,transactions)
+        if success:
+            save_data(balance,transactions)
 
     elif(menu_choice == 3):
-        balance = withdraw_money(balance,transactions)
+        balance, success = withdraw_money(balance,transactions)
+        if success:
+            save_data(balance,transactions)
 
     elif(menu_choice == 4):
         show_transactions(transactions)
@@ -83,11 +94,3 @@ while(process):
     elif(menu_choice == 0):
         process = False
 
-
-data ={
-    "balance" : balance,
-    "transactions": transactions
-}
-
-with open("finance_data.json","w" ,encoding="utf-8") as file:
-    json.dump(data,file,ensure_ascii=False, indent=4)
