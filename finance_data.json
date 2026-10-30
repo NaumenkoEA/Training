@@ -1,16 +1,22 @@
 {
-    "balance": 900,
+    "balance": 17800,
     "transactions": [
         {
             "type": "Пополнение",
-            "amount": 1000,
-            "date": "2026-10-29"
+            "amount": 20000,
+            "date": "2026-10-30"
         },
         {
             "type": "Снятие",
-            "amount": 100,
+            "amount": 200,
             "category": "еда",
-            "date": "2026-10-29"
+            "date": "2026-10-30"
+        },
+        {
+            "type": "Снятие",
+            "amount": 2000,
+            "category": "покупки",
+            "date": "2026-10-30"
         }
     ]
 }
