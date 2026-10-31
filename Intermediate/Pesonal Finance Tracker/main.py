@@ -89,8 +89,8 @@ def show_balance(value):
 def show_transactions(value):
     if value :
         print("История операций : ")
-        for val in value :
-            print(f"Тип: {val['type']} - Сумма: {val['amount']} - Категория : {val.get('category','Не указана')}")
+        for index , val in enumerate(value,start=1) :
+            print(f"{index}.{val['type']} - {val['amount']} - Категория : {val.get('category','Не указана')}")
     else:
         print("История оперций пуста! ")
 
@@ -205,6 +205,42 @@ def delete_transaction(balance, transactions):
         print("Транзакций нет")
     return balance ,success_delete, transactions
 
+def edit_transaction(balance,transactions):
+    success_edit = False
+    if transactions :
+            for index, transaction in enumerate(transactions,start=1):
+                print(f"{index}.{transaction['type']} - {transaction['amount']}")
+            try:
+                input_index = int(input("\nВыберите номер транзакции : "))
+                if( 1<= input_index <= len(transactions)):
+                    selected_transaction = transactions[input_index -1]
+                    print(f"""\nНомер транзакции {input_index}
+{selected_transaction['type']} - {selected_transaction['amount']} - {selected_transaction['date']} """)
+    
+                    new_amount = int(input("Введите сумму :"))
+                    old_amount = selected_transaction.get("amount",0)
+                    if(new_amount > 0):
+                        if(selected_transaction.get("type","") == "Пополнение"):
+                            selected_transaction["amount"] = new_amount
+                            balance += new_amount - old_amount
+                            success_edit = True
+                            print(f"В операции {selected_transaction['type']} сумма {old_amount} изменена на {new_amount}")
+                        elif(selected_transaction.get("type","") == "Снятие"):
+                            selected_transaction["amount"] = new_amount
+                            balance -= new_amount - old_amount
+                            success_edit = True
+                            print(f"В операции {selected_transaction['type']} сумма {old_amount} изменена на {new_amount}")
+                        else:
+                            print("\nОшибка типа транзакции")
+                    else:
+                        print("\nСумма должна быть больше 0!")
+                else:
+                    print("\nВышли из диапазона чисел!")
+            except ValueError:
+                print("\nНекорректный ввод ")
+    else:
+        print("\nТранзакций нет")
+    return balance ,success_edit, transactions
 
 def show_income_by_month(transactions):
     input_date = input("Введите месяц в формате ГГГГ-ММ :")
@@ -274,15 +310,15 @@ while(process):
     7.Расходы за месяц
     8.Расходы по категориям за месяц
     9.Пополнения за месяц
-    10.Удаление транзакции
     0.Выход\n""")
     try:
         menu_choice = int(input("Выберите действие : "))
+        print("")
     except ValueError:
         print("Ошибка: нужно ввести число!")
         continue
 
-    if menu_choice not in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+    if menu_choice not in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]:
         print("Не правильно выбранно действие! ")
 
     elif(menu_choice == 1):
@@ -299,7 +335,35 @@ while(process):
             save_data(balance,transactions)
 
     elif(menu_choice == 4):
-        show_transactions(transactions)
+        process_choice = True
+        while(process_choice):
+            show_transactions(transactions)
+            print("\nВыберите действие :")
+            print("""\n    1.Удалить транзакцию
+    2.Редактировать транзакцию
+    0.Выход\n""")
+            try:
+                menu_transaction_choice = int(input("Выберите действие : "))
+            except ValueError:
+                print("Ошибка: нужно ввести число!")
+                continue
+            
+            if menu_transaction_choice not in [0, 1, 2]:
+                print("Не правильно выбранно действие! ")
+
+            elif(menu_transaction_choice == 1):
+                balance, success , transactions = delete_transaction(balance , transactions)
+                if success:
+                    save_data(balance,transactions)
+
+            elif(menu_transaction_choice == 2):
+                balance, success , transactions = edit_transaction(balance , transactions)
+                if success:
+                    save_data(balance,transactions)
+
+            elif(menu_transaction_choice == 0):
+                process_choice = False
+            
 
     elif(menu_choice == 5):
         result = show_expense_statistics(transactions)
@@ -341,11 +405,6 @@ while(process):
                 print(f"Cумма пополнений за {month}: {result}")
             else:
                 print("Неправильная дата")
-
-    elif(menu_choice == 10):
-        balance, success , transactions = delete_transaction(balance , transactions)
-        if success:
-            save_data(balance,transactions)
 
     elif(menu_choice == 0):
         process = False
