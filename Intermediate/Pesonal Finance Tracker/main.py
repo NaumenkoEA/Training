@@ -242,6 +242,79 @@ def edit_transaction(balance,transactions):
         print("\nТранзакций нет")
     return balance ,success_edit, transactions
 
+def filter_transactions_by_type(transactions):
+    if not transactions:
+                print("Операций нет")
+    else:
+        filtr = input("Выберите тип операции (Пополнение/Снятие) : ").lower()
+        if filtr not in ["пополнение","снятие"]:
+            print("Некорректный тип операции!")
+        else:
+            filtered_transactions =[]
+            for transaction in transactions :
+                if transaction["type"].lower() == filtr:
+                    filtered_transactions.append(transaction)
+
+            if not filtered_transactions:
+                print("Операций данного типа нет")
+            else:
+                for item in filtered_transactions:
+                    print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+
+def filter_transactions_by_category(transactions):                 
+    if not transactions:
+        print("Операций нет")
+        return None
+    
+    categories=[]
+    filtered_transactions = []
+    for transaction in transactions:
+        if(transaction["type"].lower() == "снятие"):
+            categories.append(transaction["category"])
+    unique_categories = set(categories)
+    if not unique_categories:
+        print("Нет категорий расходов")
+        return None
+    else:
+        for item in unique_categories:
+            print(item.capitalize())
+        need_category = input("Выберите категорию : ").lower()
+            
+        for transaction in transactions:
+            if (transaction["type"].lower() == "снятие" and transaction["category"].lower() == need_category):
+                filtered_transactions.append(transaction)
+        if not filtered_transactions:
+            print("Операций в этой категории нет")
+            return None
+        print(f"\n Категория : {need_category.capitalize()}")
+        for item in filtered_transactions:    
+            print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+
+def filter_transactions_by_month(transactions):
+    if not transactions:
+            print("Операций нет")
+            return None
+    input_date = input("Введите месяц в формате ГГГГ-ММ :")
+    filtered_transactions = []
+    if(len(input_date) == 7 and input_date[4] == "-" ):
+            str1 , str2 = input_date.split("-")
+            if((str1.isdigit() and 2000 <= int(str1) <= date.today().year) and (str2.isdigit() and 1 <= int(str2) <= 12)):
+                for transaction in transactions:
+                    if(transaction.get("date","").startswith(input_date) ):
+                        filtered_transactions.append(transaction)
+            else:
+                print("Некорректный формат даты")
+                return  None
+    else:
+        print("Некорректный формат даты")
+        return None
+    if not filtered_transactions:
+                print("Операций в выбраном месяце нет")
+                return None
+    print(f"\n Месяц : {input_date}")
+    for item in filtered_transactions:    
+        print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+    
 def show_income_by_month(transactions):
     input_date = input("Введите месяц в формате ГГГГ-ММ :")
     total = 0
@@ -336,11 +409,14 @@ while(process):
 
     elif(menu_choice == 4):
         process_choice = True
+        show_transactions(transactions)
         while(process_choice):
-            show_transactions(transactions)
             print("\nВыберите действие :")
             print("""\n    1.Удалить транзакцию
     2.Редактировать транзакцию
+    3.Фильтр транзакций по типу
+    4.Фильтр транзакций по категории
+    5.Фильтр транзакций по месяцу
     0.Выход\n""")
             try:
                 menu_transaction_choice = int(input("Выберите действие : "))
@@ -348,7 +424,7 @@ while(process):
                 print("Ошибка: нужно ввести число!")
                 continue
             
-            if menu_transaction_choice not in [0, 1, 2]:
+            if menu_transaction_choice not in [0, 1, 2, 3, 4, 5]:
                 print("Не правильно выбранно действие! ")
 
             elif(menu_transaction_choice == 1):
@@ -360,6 +436,15 @@ while(process):
                 balance, success , transactions = edit_transaction(balance , transactions)
                 if success:
                     save_data(balance,transactions)
+
+            elif(menu_transaction_choice == 3):
+                filter_transactions_by_type(transactions)
+
+            elif(menu_transaction_choice == 4):
+                filter_transactions_by_category(transactions)
+
+            elif(menu_transaction_choice == 5):
+                filter_transactions_by_month(transactions)
 
             elif(menu_transaction_choice == 0):
                 process_choice = False
