@@ -50,15 +50,15 @@ def get_expenses():
             expenses = cursor.fetchall()
     return expenses
 
-def update_transaction(transaction_id,new_category):
-    with closing(get_connection()) as connection :
+def update_transaction(transaction_id, new_amount):
+    with closing(get_connection()) as connection:
         with connection:
             cursor = connection.cursor()
             cursor.execute("""
-                UPDATE transactions 
-                SET category = ?
+                UPDATE transactions
+                SET amount = ?
                 WHERE id = ?
-    """,(new_category, transaction_id))
+            """, (new_amount, transaction_id))
 
 def delete_transaction(transaction_id):
     with closing(get_connection()) as connection:
@@ -141,6 +141,18 @@ def get_average_expense():
                 WHERE type = 'снятие'
             """,)
             average = cursor.fetchone()[0] or 0 
+    return average
+
+def get_total_income():
+    with closing(get_connection()) as connection :
+            with connection:
+                cursor = connection.cursor()
+                cursor.execute("""
+                    SELECT SUM(amount)
+                    FROM transactions
+                    WHERE type = 'пополнение'
+                """,)
+                average = cursor.fetchone()[0] or 0 
     return average
 
 init_db()

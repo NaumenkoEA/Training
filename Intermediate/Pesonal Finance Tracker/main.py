@@ -1,98 +1,43 @@
-import json
+from database import (
+    init_db,
+    get_total_income,
+    add_transaction,
+    get_transactions,
+    get_expenses,
+    update_transaction,
+    delete_transaction,
+    get_transactions_sorted,
+    get_last_transactions,
+    get_total_expenses,
+    get_expenses_by_category,
+    count_expenses_by_category,
+    get_average_expense
+)
 from datetime import date
 from datetime import datetime
+
+init_db()
 
 process = True
 categories = ["еда", "транспорт", "развлечения", "покупки", "другое"]
 
-def load_data():
-    try:
-        with open("finance_data.json","r" ,encoding="utf-8") as file:
-            data = json.load(file)
-        balance = data["balance"]
-        transactions = data["transactions"]
-        if type(balance) not in (int, float):
-            balance=0
-            print("Некорректный формат баланса")
-        if(balance <0):
-            balance =0 
-        if(not isinstance(transactions,list) ):
-            transactions = [] 
-            print("Некорректный формат списка транзакций")
-        valid_transactions = []
 
-        for item in transactions:
-            if not isinstance(item, dict):
-                print("Некорректная транзакция пропущена")
-                continue
-            if (
-                "type" not in item
-                or not isinstance(item["type"], str)
-                or item["type"] not in ("Пополнение", "Снятие")
-            ):
-                print("Некорректный тип транзакции")
-                continue
-            if (
-                "amount" not in item
-                or type(item["amount"]) not in (int, float)
-                or item["amount"] <= 0
-            ):
-                print("Некорректная сумма транзакции")
-                continue
-            if "date" not in item or not isinstance(item["date"], str):
-                print("Некорректная дата")
-                continue
-            try:
-                datetime.strptime(item["date"], "%Y-%m-%d")
-            except ValueError:
-                print("Некорректная дата")
-                continue
-            if item["type"] == "Снятие":
-                if (
-                    "category" not in item
-                    or not isinstance(item["category"], str)
-                    or item["category"] not in categories
-                ):
-                    print("Некорректная категория")
-                    continue
 
-            valid_transactions.append(item)
+def show_balance():
+    balance =  get_total_income() - get_total_expenses()
+    print(f"Текущий баланс: {balance}")
 
-        transactions = valid_transactions
+def show_transactions():
+    transactions = get_transactions()
+    if transactions :
+        print(f"{'№':<4} {'Тип':<15} {'Сумма':<12} {'Категория':<18} {'Дата':<12}")
+        print("-" * 65)
 
-    except FileNotFoundError :
-        balance = 0 
-        transactions = []
-    except json.JSONDecodeError:
-        balance = 0 
-        transactions = []
-        print("Файл с данными повреждён")
-    except KeyError:
-        balance = 0 
-        transactions = []
-        print("В файле отсутствуют необходимые данные")
-    return balance , transactions
-
-balance, transactions = load_data()
-
-def save_data(balance , transactions):
-    data ={
-    "balance" : balance,
-    "transactions": transactions
-    }
-    with open("finance_data.json","w" ,encoding="utf-8") as file:
-        json.dump(data,file,ensure_ascii=False, indent=4)
-
-def show_balance(value):
-    print(f"Текущий баланс: {value}")
-
-def show_transactions(value):
-    if value :
-        print("История операций : ")
-        for index , val in enumerate(value,start=1) :
-            print(f"{index}.{val['type']} - {val['amount']} - Категория : {val.get('category','Не указана')}")
+        for index, val in enumerate(transactions, start=1):
+            category = val[3] or "Без категории"
+            print(f"{index:<4} {val[1]:<15} {val[2]:<12.2f} {category:<18} {val[4]:<12}")
     else:
-        print("История оперций пуста! ")
+        print("Транзакций нет")
 
 def show_expense_statistics(transactions):
     total = 0
@@ -205,42 +150,47 @@ def delete_transaction(balance, transactions):
         print("Транзакций нет")
     return balance ,success_delete, transactions
 
-def edit_transaction(balance,transactions):
-    success_edit = False
+def edit_transaction():
+    transactions = get_transactions()
     if transactions :
-            for index, transaction in enumerate(transactions,start=1):
-                print(f"{index}.{transaction['type']} - {transaction['amount']}")
+            for transaction in transactions:
+                print(f"{transaction[0]}.{transaction[1]} \t {transaction[2]}")
             try:
-                input_index = int(input("\nВыберите номер транзакции : "))
-                if( 1<= input_index <= len(transactions)):
-                    selected_transaction = transactions[input_index -1]
-                    print(f"""\nНомер транзакции {input_index}
-{selected_transaction['type']} - {selected_transaction['amount']} - {selected_transaction['date']} """)
-    
-                    new_amount = int(input("Введите сумму :"))
-                    old_amount = selected_transaction.get("amount",0)
-                    if(new_amount > 0):
-                        if(selected_transaction.get("type","") == "Пополнение"):
-                            selected_transaction["amount"] = new_amount
-                            balance += new_amount - old_amount
-                            success_edit = True
-                            print(f"В операции {selected_transaction['type']} сумма {old_amount} изменена на {new_amount}")
-                        elif(selected_transaction.get("type","") == "Снятие"):
-                            selected_transaction["amount"] = new_amount
-                            balance -= new_amount - old_amount
-                            success_edit = True
-                            print(f"В операции {selected_transaction['type']} сумма {old_amount} изменена на {new_amount}")
-                        else:
-                            print("\nОшибка типа транзакции")
-                    else:
-                        print("\nСумма должна быть больше 0!")
+                input_index = int(input("\nВыберите индекс транзакции : "))
+                selected_transaction = None
+                for transaction in transactions:
+                    if(transaction[0] == input_index):
+                        selected_transaction = transaction
+                        break
+                if selected_transaction is None:
+                    print("Транзакция не найдена")
                 else:
-                    print("\nВышли из диапазона чисел!")
+                    category = selected_transaction[3] or "Без категории"
+                    print(f"{selected_transaction[0]}. {selected_transaction[1]} \t {selected_transaction[2]} \t {category} \t {selected_transaction[4]}")
+                    old_amount = selected_transaction[2]
+                    new_amount = int(input("Введите новую сумму "))
+                    if new_amount <= 0 :
+                        print("Неверная сумма! ")
+                    else:
+                        balance_ = get_total_income() - get_total_expenses()
+                        transaction_type = selected_transaction[1]
+                        if transaction_type == 'снятие':
+                            new_balance = balance_ + old_amount - new_amount
+                            if new_balance < 0 :
+                                print("Недостаточно средств для изменения операции!")
+                            else:
+                                update_transaction(selected_transaction[0], new_amount)
+                                print(f"Сумма изменена: {old_amount} → {new_amount}")
+                        elif transaction_type == 'пополнение':
+                            update_transaction(selected_transaction[0], new_amount)
+                            print(f"Сумма изменена: {old_amount} → {new_amount}")
+                        else:
+                            print("Неизвестный тип операции")
             except ValueError:
                 print("\nНекорректный ввод ")
     else:
         print("\nТранзакций нет")
-    return balance ,success_edit, transactions
+    return 
 
 def filter_transactions_by_type(transactions):
     if not transactions:
@@ -333,44 +283,43 @@ def show_income_by_month(transactions):
     else:
         return total , None
 
-def deposit_money(value,transactions):
+def deposit_money():
     try:
         deposit = int(input("Введите сумму пополнения : "))
     except ValueError:
         print("Ошибка: нужно ввести число!")
-        return value ,False
+        return False
 
     if(deposit > 0):
         today = date.today().isoformat()
-        value += deposit
-        transactions.append({"type":"Пополнение", "amount":deposit , "date":today})
-        return value , True
+        add_transaction('пополнение', deposit, None, today)
+        return  True
     else:
         print("Ошибка, некорректная сумма! ")
-        return value ,False
+        return False
 
-def withdraw_money(value,transactions):
+def withdraw_money():
+    balance_ = get_total_income() - get_total_expenses()
     try:
         withdraw = int(input("Введите сумму которую хотите снять : "))
         category = input("Выберите категорию (Еда, Транспорт, Развлечения, Покупки, Другое) : ").strip().lower()
     except ValueError:
         print("Ошибка: нужно ввести число!")
-        return value ,False
+        return False
 
     if(withdraw <= 0):
         print("Ошибка, некорректная сумма! ")
-        return value, False
-    elif(withdraw > value):
+        return  False
+    elif(withdraw > balance_):
         print("Недостаточно средств! ")
-        return value, False
+        return False
     elif(category not in categories):
         print("Не правильная категория! ")
-        return value,False
+        return False
     else:
         today = date.today().isoformat()
-        value -= withdraw
-        transactions.append({"type":"Снятие", "amount":withdraw , "category":category , "date":today})
-        return value, True
+        add_transaction('снятие', withdraw, category, today)
+        return True
 
 while(process):
     print("\nФинансовый трекер")
@@ -395,21 +344,21 @@ while(process):
         print("Не правильно выбранно действие! ")
 
     elif(menu_choice == 1):
-        show_balance(balance)
+        show_balance()
 
-    elif(menu_choice == 2):
-        balance , success = deposit_money(balance,transactions)
+    elif menu_choice == 2:
+        success = deposit_money()
         if success:
-            save_data(balance,transactions)
+            print("Пополнение успешно сохранено!")
 
     elif(menu_choice == 3):
-        balance, success = withdraw_money(balance,transactions)
+        success = withdraw_money()
         if success:
-            save_data(balance,transactions)
+            print("Снятие успешно сохранено!")
 
     elif(menu_choice == 4):
         process_choice = True
-        show_transactions(transactions)
+        show_transactions()
         while(process_choice):
             print("\nВыберите действие :")
             print("""\n    1.Удалить транзакцию
@@ -433,9 +382,9 @@ while(process):
                     save_data(balance,transactions)
 
             elif(menu_transaction_choice == 2):
-                balance, success , transactions = edit_transaction(balance , transactions)
+                success = edit_transaction()
                 if success:
-                    save_data(balance,transactions)
+                    print("Успешно изменено! ")
 
             elif(menu_transaction_choice == 3):
                 filter_transactions_by_type(transactions)
