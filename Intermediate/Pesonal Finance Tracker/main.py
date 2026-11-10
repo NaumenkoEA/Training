@@ -10,6 +10,8 @@ from database import (
     get_last_transactions,
     get_total_expenses,
     get_expenses_by_category,
+    get_expenses_by_month,
+    get_income_by_month,
     count_expenses_by_category,
     get_average_expense
 )
@@ -39,38 +41,21 @@ def show_transactions():
     else:
         print("Транзакций нет")
 
-def show_expense_statistics(transactions):
-    total = 0
-    for transaction in transactions:
-        if(transaction["type"] == "Снятие"):
-            total +=transaction["amount"]
-    return total
+def show_expense_statistics():
+    return get_total_expenses()
 
-def show_expense_by_category(transactions):
-    expense={}
-    for transaction in transactions:
-        if(transaction["type"] == "Снятие"):
-            category = transaction.get("category","не указана")
-            amount = transaction["amount"]
-            if(category in expense):
-                expense[category] += amount
-            else:
-                expense[category] = amount
-    return expense
+def show_expense_by_category():
+    return get_expenses_by_category()
 
-def show_expenses_by_month(transactions):
+def show_expenses_by_month():
     input_date = input("Введите месяц в формате ГГГГ-ММ :")
     total = 0
     
     if(len(input_date) == 7 and input_date[4] == "-" ):
         str1 , str2 = input_date.split("-")
         if((str1.isdigit() and int(str1) >= 2000) and (str2.isdigit() and int(str2) <=12 and int(str2) >= 1)):
-            for transaction in transactions:
-                if(transaction.get("type","") == "Снятие" and transaction.get("date","").startswith(input_date) ):
-                    amount = transaction.get("amount",0)
-                    if ( type(amount) in (int,float)  and amount > 0 ):
-                        total += amount
-            return total ,input_date
+            total = get_expenses_by_month(input_date)
+            return total, input_date
         else:
             return total , None
     else:
@@ -106,91 +91,89 @@ def show_expenses_by_category_and_month(transactions):
             return expense
     return None
 
-def delete_transaction(balance, transactions):
-    success_delete = False
+def remove_transaction():
+    transactions = get_transactions()
     if transactions :
-        for index, transaction in enumerate(transactions,start=1):
-            print(f"{index}.{transaction['type']} - {transaction['amount']}")
+        for transaction in transactions:
+            print(f"{transaction[0]}.{transaction[1]} \t {transaction[2]}")
         try:
-            input_index = int(input("Выберите номер транзакции : "))
-            if( 1<= input_index <= len(transactions)):
-                selected_transaction = transactions[input_index -1]
-                print(f"""\nНомер транзакции {input_index}
- {selected_transaction['type']} - {selected_transaction['amount']} - {selected_transaction['date']} """)
-
-                
-                choice = input("Удалить транзакцию (Да/Нет) ? ").lower()
-                if(choice != "да" and choice != "нет"):
-                    print("Выберите Да или Нет! ")
-                elif(choice == "нет"):
-                    print("Ничего не изменяем! ")
-                else:
-                    if(selected_transaction.get("type","") == "Пополнение"):
-                        amount = selected_transaction.get("amount",0)
-                        balance -= amount
-                        success_delete = True
-                        transactions.pop(input_index-1)
-                        print(f"Операция {selected_transaction['type']} на сумму {amount} удалена!")
-                    elif(selected_transaction.get("type","") == "Снятие"):
-                        amount = selected_transaction.get("amount",0)
-                        balance += amount
-                        success_delete = True
-                        transactions.pop(input_index-1)
-                        print(f"Операция {selected_transaction['type']} на сумму {amount} удалена!")
-                    else:
-                        print("Ошибка типа транзакции")
-                    
-
+            transaction_id = int(input("\nВведите ID транзакции: "))
+            selected_transaction = None
+            for transaction in transactions:
+                if transaction[0] == transaction_id:
+                    selected_transaction = transaction
+                    break
+            if selected_transaction is None:
+                print("Транзакция не найдена")
+                return False
             else:
-                print("Вышли из диапазона чисел!")
-            
+                category = selected_transaction[3] or "Без категории"
+                check = input("Удалить транзакцию Да/Нет: ").strip().lower()
+                if( check == 'нет'):
+                    print("Удаление отменено!")
+                    return False
+                elif(check == 'да'):
+                    delete_transaction(transaction_id)
+                    print(f"{selected_transaction[0]}. {selected_transaction[1]} \t {selected_transaction[2]} \t {category} \t {selected_transaction[4]}")
+                    return True
+                else:
+                    print("Некорректное подтверждение!")
+                    return False
         except ValueError:
-            print("Не правильный номер ")
+            print("Некорректный ввод")
+            return False
     else:
         print("Транзакций нет")
-    return balance ,success_delete, transactions
+        return False
 
 def edit_transaction():
     transactions = get_transactions()
     if transactions :
+        for transaction in transactions:
+            print(f"{transaction[0]}.{transaction[1]} \t {transaction[2]}")
+        try:
+            transaction_id = int(input("\nВведите ID транзакции: "))
+            selected_transaction = None
             for transaction in transactions:
-                print(f"{transaction[0]}.{transaction[1]} \t {transaction[2]}")
-            try:
-                input_index = int(input("\nВыберите индекс транзакции : "))
-                selected_transaction = None
-                for transaction in transactions:
-                    if(transaction[0] == input_index):
-                        selected_transaction = transaction
-                        break
-                if selected_transaction is None:
-                    print("Транзакция не найдена")
+                if(transaction[0] == transaction_id):
+                    selected_transaction = transaction
+                    break
+            if selected_transaction is None:
+                print("Транзакция не найдена")
+                return False
+            else:
+                category = selected_transaction[3] or "Без категории"
+                print(f"{selected_transaction[0]}. {selected_transaction[1]} \t {selected_transaction[2]} \t {category} \t {selected_transaction[4]}")
+                old_amount = selected_transaction[2]
+                new_amount = int(input("Введите новую сумму "))
+                if new_amount <= 0 :
+                    print("Неверная сумма!")
+                    return False
                 else:
-                    category = selected_transaction[3] or "Без категории"
-                    print(f"{selected_transaction[0]}. {selected_transaction[1]} \t {selected_transaction[2]} \t {category} \t {selected_transaction[4]}")
-                    old_amount = selected_transaction[2]
-                    new_amount = int(input("Введите новую сумму "))
-                    if new_amount <= 0 :
-                        print("Неверная сумма! ")
-                    else:
-                        balance_ = get_total_income() - get_total_expenses()
-                        transaction_type = selected_transaction[1]
-                        if transaction_type == 'снятие':
-                            new_balance = balance_ + old_amount - new_amount
-                            if new_balance < 0 :
-                                print("Недостаточно средств для изменения операции!")
-                            else:
-                                update_transaction(selected_transaction[0], new_amount)
-                                print(f"Сумма изменена: {old_amount} → {new_amount}")
-                        elif transaction_type == 'пополнение':
+                    balance_ = get_total_income() - get_total_expenses()
+                    transaction_type = selected_transaction[1]
+                    if transaction_type == 'снятие':
+                        new_balance = balance_ + old_amount - new_amount
+                        if new_balance < 0 :
+                            print("Недостаточно средств для изменения операции!")
+                            return False
+                        else:
                             update_transaction(selected_transaction[0], new_amount)
                             print(f"Сумма изменена: {old_amount} → {new_amount}")
-                        else:
-                            print("Неизвестный тип операции")
-            except ValueError:
-                print("\nНекорректный ввод ")
+                            return True
+                    elif transaction_type == 'пополнение':
+                        update_transaction(selected_transaction[0], new_amount)
+                        print(f"Сумма изменена: {old_amount} → {new_amount}")
+                        return True
+                    else:
+                        print("Неизвестный тип операции")
+                        return False
+        except ValueError:
+            print("\nНекорректный ввод ")
+            return False
     else:
         print("\nТранзакций нет")
-    return 
+        return False
 
 def filter_transactions_by_type(transactions):
     if not transactions:
@@ -265,18 +248,14 @@ def filter_transactions_by_month(transactions):
     for item in filtered_transactions:    
         print(f"\n{item['type']} - {item['amount']} - {item['date']}")
     
-def show_income_by_month(transactions):
+def show_income_by_month():
     input_date = input("Введите месяц в формате ГГГГ-ММ :")
     total = 0
         
     if(len(input_date) == 7 and input_date[4] == "-" ):
         str1 , str2 = input_date.split("-")
         if((str1.isdigit() and 2000 <= int(str1) <= date.today().year) and (str2.isdigit() and 1 <= int(str2) <= 12)):
-            for transaction in transactions:
-                if(transaction.get("type","") == "Пополнение" and transaction.get("date","").startswith(input_date) ):
-                    amount = transaction.get("amount",0)
-                    if ( type(amount) in (int,float)  and amount > 0 ):
-                        total += amount
+            total = get_income_by_month(input_date)
             return total ,input_date
         else:
             return total , None
@@ -377,9 +356,9 @@ while(process):
                 print("Не правильно выбранно действие! ")
 
             elif(menu_transaction_choice == 1):
-                balance, success , transactions = delete_transaction(balance , transactions)
+                success = remove_transaction()
                 if success:
-                    save_data(balance,transactions)
+                    print("Транзакция удалена! ")
 
             elif(menu_transaction_choice == 2):
                 success = edit_transaction()
@@ -390,24 +369,23 @@ while(process):
                 filter_transactions_by_type(transactions)
 
             elif(menu_transaction_choice == 4):
-                filter_transactions_by_category(transactions)
+                filter_transactions_by_category()
 
             elif(menu_transaction_choice == 5):
-                filter_transactions_by_month(transactions)
+                filter_transactions_by_month()
 
             elif(menu_transaction_choice == 0):
                 process_choice = False
             
-
     elif(menu_choice == 5):
-        result = show_expense_statistics(transactions)
+        result = show_expense_statistics()
         if result:
             print("Общая сумма расходов: ",result)
         else:
             print("Расходов нет")
 
     elif(menu_choice == 6):
-        result = show_expense_by_category(transactions)
+        result = show_expense_by_category()
         if result:
             print("Cумма расходов по категориям: ")
             for category , amount in result.items():
@@ -416,14 +394,14 @@ while(process):
             print("Расходов на эту категорию нет")
 
     elif(menu_choice == 7):
-        result , month = show_expenses_by_month(transactions)
+        result , month = show_expenses_by_month()
         if(month is not None):
             print(f"Cумма расходов за {month}: {result}")
         else:
             print("Неправильная дата")
 
     elif(menu_choice == 8):
-        result = show_expenses_by_category_and_month(transactions)
+        result = show_expenses_by_category_and_month()
         if result is None :
             print("Неправильная дата") 
         elif result:
@@ -434,7 +412,7 @@ while(process):
             print("За этот месяц расходов нет")
 
     elif(menu_choice == 9):
-            result , month = show_income_by_month(transactions)
+            result , month = show_income_by_month()
             if(month is not None):
                 print(f"Cумма пополнений за {month}: {result}")
             else:

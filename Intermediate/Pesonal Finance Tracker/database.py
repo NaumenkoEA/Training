@@ -116,6 +116,32 @@ def get_expenses_by_category():
                 ORDER BY SUM(amount) DESC
             """,)
             expenses = cursor.fetchall()
+    return dict(expenses)
+
+def get_expenses_by_month(month):
+    with closing(get_connection()) as connection :
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT SUM(amount) 
+                FROM transactions
+                WHERE type = 'снятие'
+                AND date LIKE ?
+            """,(month + "%",))
+            expenses = cursor.fetchone()[0] or 0
+    return expenses
+
+def get_income_by_month(month):
+    with closing(get_connection()) as connection :
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT SUM(amount) 
+                FROM transactions
+                WHERE type = 'пополнение'
+                AND date LIKE ?
+            """,(month + "%",))
+            expenses = cursor.fetchone()[0] or 0
     return expenses
 
 def count_expenses_by_category():
@@ -152,7 +178,7 @@ def get_total_income():
                     FROM transactions
                     WHERE type = 'пополнение'
                 """,)
-                average = cursor.fetchone()[0] or 0 
-    return average
+                total_income = cursor.fetchone()[0] or 0 
+    return total_income
 
 init_db()
