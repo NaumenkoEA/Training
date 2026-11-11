@@ -131,6 +131,21 @@ def get_expenses_by_month(month):
             expenses = cursor.fetchone()[0] or 0
     return expenses
 
+def get_expenses_by_category_and_month(month):
+    with closing(get_connection()) as connection:
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute("""
+                SELECT category ,SUM(amount)
+                FROM transactions
+                WHERE type = 'снятие'
+                AND date LIKE ?
+                GROUP BY category
+                ORDER BY SUM(amount) DESC
+                """,(month + "%",))
+            expenses = cursor.fetchall()
+        return dict(expenses)
+
 def get_income_by_month(month):
     with closing(get_connection()) as connection :
         with connection:

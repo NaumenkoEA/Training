@@ -11,6 +11,7 @@ from database import (
     get_total_expenses,
     get_expenses_by_category,
     get_expenses_by_month,
+    get_expenses_by_category_and_month,
     get_income_by_month,
     count_expenses_by_category,
     get_average_expense
@@ -61,9 +62,8 @@ def show_expenses_by_month():
     else:
         return total , None
 
-def show_expenses_by_category_and_month(transactions):
+def show_expenses_by_category_and_month():
     input_date = input("Введите месяц в формате ГГГГ-ММ: ")
-    expense = {}
 
     if len(input_date) == 7 and input_date[4] == "-":
         str1, str2 = input_date.split("-")
@@ -74,22 +74,10 @@ def show_expenses_by_category_and_month(transactions):
             and str2.isdigit()
             and 1 <= int(str2) <= 12
         ):
-            for transaction in transactions:
-                if (
-                    transaction.get("type", "") == "Снятие"
-                    and transaction.get("date", "").startswith(input_date)
-                ):
-                    amount = transaction.get("amount", 0)
-
-                    if type(amount) in (int, float) and amount > 0:
-                        category = transaction.get("category", "не указана")
-
-                        if category in expense:
-                            expense[category] += amount
-                        else:
-                            expense[category] = amount
-            return expense
-    return None
+            expenses = get_expenses_by_category_and_month(input_date)
+            return expenses
+        
+    return  None
 
 def remove_transaction():
     transactions = get_transactions()
@@ -175,9 +163,11 @@ def edit_transaction():
         print("\nТранзакций нет")
         return False
 
-def filter_transactions_by_type(transactions):
+def filter_transactions_by_type():
+    transactions = get_transactions()
     if not transactions:
-                print("Операций нет")
+        print("Операций нет")
+        return None
     else:
         filtr = input("Выберите тип операции (Пополнение/Снятие) : ").lower()
         if filtr not in ["пополнение","снятие"]:
@@ -185,25 +175,25 @@ def filter_transactions_by_type(transactions):
         else:
             filtered_transactions =[]
             for transaction in transactions :
-                if transaction["type"].lower() == filtr:
+                if transaction[1].lower() == filtr:
                     filtered_transactions.append(transaction)
 
             if not filtered_transactions:
                 print("Операций данного типа нет")
             else:
                 for item in filtered_transactions:
-                    print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+                    print(f"\n{item[1]} - {item[2]} - {item[4]}")
 
-def filter_transactions_by_category(transactions):                 
+def filter_transactions_by_category():
+    transactions = get_transactions()
     if not transactions:
         print("Операций нет")
         return None
-    
     categories=[]
     filtered_transactions = []
     for transaction in transactions:
-        if(transaction["type"].lower() == "снятие"):
-            categories.append(transaction["category"])
+        if(transaction[1].lower() == "снятие"):
+            categories.append((transaction[3] or " ").lower())
     unique_categories = set(categories)
     if not unique_categories:
         print("Нет категорий расходов")
@@ -211,19 +201,20 @@ def filter_transactions_by_category(transactions):
     else:
         for item in unique_categories:
             print(item.capitalize())
-        need_category = input("Выберите категорию : ").lower()
+        need_category = input("Выберите категорию: ").strip().lower()
             
         for transaction in transactions:
-            if (transaction["type"].lower() == "снятие" and transaction["category"].lower() == need_category):
+            if (transaction[1].lower() == "снятие" and (transaction[3] or "").lower() == need_category):
                 filtered_transactions.append(transaction)
         if not filtered_transactions:
             print("Операций в этой категории нет")
             return None
         print(f"\n Категория : {need_category.capitalize()}")
         for item in filtered_transactions:    
-            print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+            print(f"\n{item[1]} - {item[2]} - {item[4]}")
 
-def filter_transactions_by_month(transactions):
+def filter_transactions_by_month():
+    transactions =get_transactions()
     if not transactions:
             print("Операций нет")
             return None
@@ -233,7 +224,7 @@ def filter_transactions_by_month(transactions):
             str1 , str2 = input_date.split("-")
             if((str1.isdigit() and 2000 <= int(str1) <= date.today().year) and (str2.isdigit() and 1 <= int(str2) <= 12)):
                 for transaction in transactions:
-                    if(transaction.get("date","").startswith(input_date) ):
+                    if(transaction[4].startswith(input_date)):
                         filtered_transactions.append(transaction)
             else:
                 print("Некорректный формат даты")
@@ -246,7 +237,7 @@ def filter_transactions_by_month(transactions):
                 return None
     print(f"\n Месяц : {input_date}")
     for item in filtered_transactions:    
-        print(f"\n{item['type']} - {item['amount']} - {item['date']}")
+        print(f"\n{item[1]} - {item[2]} - {item[4]}")
     
 def show_income_by_month():
     input_date = input("Введите месяц в формате ГГГГ-ММ :")
@@ -366,7 +357,7 @@ while(process):
                     print("Успешно изменено! ")
 
             elif(menu_transaction_choice == 3):
-                filter_transactions_by_type(transactions)
+                filter_transactions_by_type()
 
             elif(menu_transaction_choice == 4):
                 filter_transactions_by_category()
