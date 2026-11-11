@@ -3,18 +3,13 @@ from database import (
     get_total_income,
     add_transaction,
     get_transactions,
-    get_expenses,
     update_transaction,
     delete_transaction,
-    get_transactions_sorted,
-    get_last_transactions,
     get_total_expenses,
     get_expenses_by_category,
     get_expenses_by_month,
     get_expenses_by_category_and_month,
     get_income_by_month,
-    count_expenses_by_category,
-    get_average_expense
 )
 from datetime import date
 from datetime import datetime
@@ -23,8 +18,6 @@ init_db()
 
 process = True
 categories = ["еда", "транспорт", "развлечения", "покупки", "другое"]
-
-
 
 def show_balance():
     balance =  get_total_income() - get_total_expenses()
@@ -38,7 +31,7 @@ def show_transactions():
 
         for index, val in enumerate(transactions, start=1):
             category = val[3] or "Без категории"
-            print(f"{index:<4} {val[1]:<15} {val[2]:<12.2f} {category:<18} {val[4]:<12}")
+            print(f"{val[0]:<4} {val[1]:<15} {val[2]:<12.2f} {category:<18} {val[4]:<12}")
     else:
         print("Транзакций нет")
 
@@ -54,7 +47,7 @@ def show_expenses_by_month():
     
     if(len(input_date) == 7 and input_date[4] == "-" ):
         str1 , str2 = input_date.split("-")
-        if((str1.isdigit() and int(str1) >= 2000) and (str2.isdigit() and int(str2) <=12 and int(str2) >= 1)):
+        if((str1.isdigit() and 2000 <= int(str1) <= date.today().year) and (str2.isdigit() and int(str2) <=12 and int(str2) >= 1)):
             total = get_expenses_by_month(input_date)
             return total, input_date
         else:
@@ -70,7 +63,8 @@ def show_expenses_by_category_and_month():
 
         if (
             str1.isdigit()
-            and int(str1) >= 2000
+            and  2000 <= int(str1) <= date.today().year
+            
             and str2.isdigit()
             and 1 <= int(str2) <= 12
         ):
@@ -169,7 +163,7 @@ def filter_transactions_by_type():
         print("Операций нет")
         return None
     else:
-        filtr = input("Выберите тип операции (Пополнение/Снятие) : ").lower()
+        filtr = input("Выберите тип операции (Пополнение/Снятие) : ").strip().lower()
         if filtr not in ["пополнение","снятие"]:
             print("Некорректный тип операции!")
         else:
@@ -193,8 +187,10 @@ def filter_transactions_by_category():
     filtered_transactions = []
     for transaction in transactions:
         if(transaction[1].lower() == "снятие"):
-            categories.append((transaction[3] or " ").lower())
-    unique_categories = set(categories)
+            if transaction[3]:
+                categories.append(transaction[3].lower())
+            
+    unique_categories = sorted(set(categories))
     if not unique_categories:
         print("Нет категорий расходов")
         return None
@@ -328,8 +324,8 @@ while(process):
 
     elif(menu_choice == 4):
         process_choice = True
-        show_transactions()
         while(process_choice):
+            show_transactions()
             print("\nВыберите действие :")
             print("""\n    1.Удалить транзакцию
     2.Редактировать транзакцию
